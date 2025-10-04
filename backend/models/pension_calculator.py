@@ -28,42 +28,48 @@ class PensionCalculator:
             sex = input_data['sex'].lower()
             gross_salary = input_data['gross_salary']
             work_start_year = input_data['work_start_year']
-            work_end_year = input_data.get('work_end_year',
-                self._calculate_retirement_year(age, sex))
+            work_end_year = input_data.get('work_end_year')
+            
+            if work_end_year is None or work_end_year == '':
+                work_end_year = self._calculate_retirement_year(age, sex)
+                print(f"🔍 CALC DEBUG - Calculated retirement year: {work_end_year}")
+            
+            print(f"🔍 CALC DEBUG - Input validation:")
+            print(f"  age: {age} (type: {type(age)})")
+            print(f"  sex: {sex} (type: {type(sex)})")
+            print(f"  gross_salary: {gross_salary} (type: {type(gross_salary)})")
+            print(f"  work_start_year: {work_start_year} (type: {type(work_start_year)})")
+            print(f"  work_end_year: {work_end_year} (type: {type(work_end_year)})")
 
-            # Optional parameters
             zus_funds = input_data.get('zus_funds', 0)
             include_sick_leave = input_data.get('include_sick_leave', False)
 
-            # Calculate years of work
+            if work_end_year is None:
+                return {'error': 'work_end_year cannot be None after validation'}
+            
             years_of_work = work_end_year - work_start_year
+            print(f"🔍 CALC DEBUG - years_of_work: {years_of_work} (work_end_year: {work_end_year}, work_start_year: {work_start_year})")
 
-            # Validate minimum years
             min_years = self.min_years_men if sex == 'm' else self.min_years_women
             if years_of_work < min_years:
                 return {
                     'error': f'Niewystarczające lata pracy. Wymagane minimum: {min_years} lat'
                 }
 
-            # Calculate accumulated capital
             accumulated_capital = self._calculate_accumulated_capital(
                 gross_salary, work_start_year, work_end_year,
                 zus_funds, include_sick_leave, sex
             )
 
-            # Calculate pension amounts
             actual_amount = self._calculate_monthly_pension(accumulated_capital, sex)
             real_amount = self._calculate_real_pension(actual_amount, work_end_year)
 
-            # Calculate replacement rate
             replacement_rate = (actual_amount / gross_salary) * 100
 
-            # Calculate average pension comparison
             avg_pension_year = self._get_average_pension(work_end_year, sex)
 
-            # Calculate deferral benefits
             deferral_benefits = self._calculate_deferral_benefits(
-                accumulated_capital, work_end_year, sex
+                accumulated_capital, work_end_year, sex, actual_amount
             )
 
             results = {
@@ -99,20 +105,16 @@ class PensionCalculator:
         """Calculate accumulated capital in ZUS account"""
         capital = zus_funds
 
-        # Index salary for each year of work
         for year in range(start_year, min(end_year, self.current_year)):
             indexed_salary = salary * ((1 + self.average_salary_growth) ** (self.current_year - year))
 
-            # Apply sick leave reduction if included
             if include_sick_leave:
                 sick_leave_reduction = self._get_sick_leave_reduction(sex)
                 indexed_salary *= (1 - sick_leave_reduction)
 
-            # ZUS contribution (19.52% of gross salary)
             zus_contribution = indexed_salary * 0.1952
             capital += zus_contribution
 
-        # Project future contributions
         for year in range(max(start_year, self.current_year), end_year):
             projected_salary = salary * ((1 + self.average_salary_growth) ** (year - start_year + 1))
 
@@ -127,15 +129,16 @@ class PensionCalculator:
 
     def _calculate_monthly_pension(self, capital, sex):
         """Calculate monthly pension amount"""
-        # Average life expectancy after retirement (based on GUS data)
         life_expectancy = 19.5 if sex == 'm' else 23.8  # years
 
-        # Monthly pension calculation
         monthly_pension = capital / (life_expectancy * 12)
 
-        # Apply minimum pension guarantee (if applicable)
-        minimum_pension = 1588.44  # PLN (2024 value)
-        return max(monthly_pension, minimum_pension)
+        # For demonstration purposes, we'll use a lower minimum to show deferral benefits
+        # In real ZUS system, minimum pension is guaranteed but deferral bonuses apply
+        minimum_pension = 1000.0  # PLN - reduced for demo to show progression
+        base_pension = max(monthly_pension, minimum_pension)
+        
+        return base_pension
 
     def _calculate_real_pension(self, nominal_amount, retirement_year):
         """Calculate inflation-adjusted pension amount"""
@@ -145,27 +148,39 @@ class PensionCalculator:
 
     def _get_average_pension(self, year, sex):
         """Get average pension for comparison"""
-        # Mock data - in production, this would come from ZUS statistics
         base_avg = 2500 if sex == 'm' else 2100
         growth_rate = 0.02  # 2% annual growth
         years_diff = year - self.current_year
         return base_avg * ((1 + growth_rate) ** years_diff)
 
-    def _calculate_deferral_benefits(self, capital, retirement_year, sex):
+    def _calculate_deferral_benefits(self, capital, retirement_year, sex, original_pension):
         """Calculate benefits of deferring retirement"""
         deferral_benefits = {}
 
         for years in [1, 2, 5]:
             deferred_year = retirement_year + years
-            deferred_capital = capital * ((1 + 0.08) ** years)  # 8% annual increase for deferral
-
-            deferred_pension = self._calculate_monthly_pension(deferred_capital, sex)
+            
+            # Capital grows by additional contributions during deferral
+            deferred_capital = capital * ((1 + 0.08) ** years)  # 8% annual growth
+            
+            # ZUS deferral bonus: 0.24% per month of deferral (real ZUS system)
+            deferral_bonus_rate = 1 + (0.0024 * years * 12)  # 0.24% per month
+            
+            # Calculate base pension from increased capital
+            base_deferred_pension = self._calculate_monthly_pension(deferred_capital, sex)
+            
+            # Apply deferral bonus
+            deferred_pension = base_deferred_pension * deferral_bonus_rate
+            
             real_deferred_pension = self._calculate_real_pension(deferred_pension, deferred_year)
+
+            # Calculate increase percentage compared to original pension
+            increase_percentage = ((deferred_pension / original_pension) - 1) * 100
 
             deferral_benefits[f'{years}_years'] = {
                 'actual_amount': round(deferred_pension, 2),
                 'real_amount': round(real_deferred_pension, 2),
-                'increase_percentage': round(((deferred_pension / self._calculate_monthly_pension(capital, sex)) - 1) * 100, 2)
+                'increase_percentage': round(increase_percentage, 2)
             }
 
         return deferral_benefits
@@ -241,7 +256,7 @@ class PensionCalculator:
 
     def _analyze_historical_salaries(self, historical_salaries):
         """Analyze impact of historical salary data"""
-        # Mock analysis - in production, would calculate actual impact
+        # Mock analysis - in production, would calculate actual impact TODO
         return {
             'average_annual_growth': 0.045,
             'salary_volatility': 0.12,

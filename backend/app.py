@@ -32,6 +32,23 @@ def create_app():
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
+    @app.route('/', methods=['GET'])
+    def root():
+        """Root endpoint"""
+        return jsonify({
+            'service': 'ZUS Pension Calculator API',
+            'version': '1.0.0',
+            'status': 'running',
+            'endpoints': [
+                '/api/calculate-pension',
+                '/api/random-fact',
+                '/api/pension-groups',
+                '/api/health',
+                '/api/dashboard',
+                '/api/simulate'
+            ]
+        })
+
     @app.route('/health', methods=['GET'])
     def health_check():
         """Health check endpoint"""
