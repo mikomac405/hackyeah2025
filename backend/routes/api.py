@@ -34,15 +34,6 @@ def get_dashboard_data():
                 "Średni czas spędzony na zwolnieniu lekarskim w Polsce to 14 dni w roku",
                 "Wysokość emerytury zależy od 80% najlepszych lat pracy"
             ],
-            'zus_colors': [
-                {'r': 255, 'g': 179, 'b': 79},
-                {'r': 0, 'g': 153, 'b': 63},
-                {'r': 190, 'g': 195, 'b': 206},
-                {'r': 63, 'g': 132, 'b': 210},
-                {'r': 0, 'g': 65, 'b': 110},
-                {'r': 240, 'g': 94, 'b': 94},
-                {'r': 0, 'g': 0, 'b': 0}
-            ]
         }
 
         return jsonify(dashboard_data)
