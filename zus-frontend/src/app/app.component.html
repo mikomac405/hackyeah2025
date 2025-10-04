@@ -1,0 +1,67 @@
+<div class="app-container">
+  <mat-toolbar color="primary" class="zus-toolbar">
+    <div class="zus-container toolbar-content">
+      <button 
+        mat-button 
+        (click)="navigateHome()" 
+        class="logo-button"
+        aria-label="Przejdź do strony głównej">
+        <mat-icon>account_balance</mat-icon>
+        <span class="logo-text">{{ title }}</span>
+      </button>
+      
+      <nav class="main-navigation" role="navigation">
+        <button 
+          mat-button 
+          (click)="navigateHome()"
+          [class.active]="currentRoute === '/home'"
+          aria-label="Strona główna">
+          <mat-icon>home</mat-icon>
+          <span class="nav-text">Strona główna</span>
+        </button>
+        
+        <button 
+          mat-button 
+          (click)="navigateToSimulation()"
+          [class.active]="currentRoute.includes('/simulation')"
+          aria-label="Symulacja emerytury">
+          <mat-icon>calculate</mat-icon>
+          <span class="nav-text">Symulacja</span>
+        </button>
+        
+        <button 
+          mat-button 
+          (click)="navigateToResults()"
+          [class.active]="currentRoute.includes('/results')"
+          aria-label="Wyniki symulacji">
+          <mat-icon>assessment</mat-icon>
+          <span class="nav-text">Wyniki</span>
+        </button>
+        
+        <button 
+          mat-button 
+          (click)="navigateToDashboard()"
+          [class.active]="currentRoute.includes('/dashboard')"
+          aria-label="Dashboard zaawansowany">
+          <mat-icon>dashboard</mat-icon>
+          <span class="nav-text">Dashboard</span>
+        </button>
+      </nav>
+    </div>
+  </mat-toolbar>
+
+  <main class="main-content" role="main">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="zus-footer" role="contentinfo">
+    <div class="zus-container">
+      <p>&copy; 2025 Zakład Ubezpieczeń Społecznych. Wszystkie prawa zastrzeżone.</p>
+      <p>
+        <a href="#" aria-label="Polityka prywatności">Polityka prywatności</a> |
+        <a href="#" aria-label="Regulamin">Regulamin</a> |
+        <a href="#" aria-label="Dostępność">Dostępność</a>
+      </p>
+    </div>
+  </footer>
+</div>

@@ -1,0 +1,84 @@
+<div class="zus-container">
+  <mat-card class="zus-card simulation-card">
+    <mat-card-header>
+      <mat-card-title>Symulacja emerytury</mat-card-title>
+      <mat-card-subtitle>Wypełnij formularz aby poznać swoją przyszłą emeryturę</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="simulationForm" (ngSubmit)="onSubmit()">
+        <div class="form-grid">
+          <!-- Wiek -->
+          <mat-form-field appearance="outline">
+            <mat-label>Wiek</mat-label>
+            <input matInput type="number" formControlName="age" min="18" max="67">
+            <mat-hint>Podaj swój aktualny wiek</mat-hint>
+          </mat-form-field>
+
+          <!-- Płeć -->
+          <mat-form-field appearance="outline">
+            <mat-label>Płeć</mat-label>
+            <mat-select formControlName="gender">
+              <mat-option value="male">Mężczyzna</mat-option>
+              <mat-option value="female">Kobieta</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Wynagrodzenie -->
+          <mat-form-field appearance="outline">
+            <mat-label>Wynagrodzenie brutto (zł)</mat-label>
+            <input matInput type="number" formControlName="grossSalary" min="0">
+            <mat-hint>Podaj miesięczne wynagrodzenie brutto</mat-hint>
+          </mat-form-field>
+
+          <!-- Rok rozpoczęcia pracy -->
+          <mat-form-field appearance="outline">
+            <mat-label>Rok rozpoczęcia pracy</mat-label>
+            <input matInput type="number" formControlName="workStartYear" min="1980" max="2025">
+          </mat-form-field>
+
+          <!-- Zgromadzone środki -->
+          <mat-form-field appearance="outline">
+            <mat-label>Zgromadzone środki (zł)</mat-label>
+            <input matInput type="number" formControlName="currentFunds" min="0">
+            <mat-hint>Opcjonalnie - już zgromadzone środki emerytalne</mat-hint>
+          </mat-form-field>
+
+          <!-- Oczekiwana emerytura -->
+          <mat-form-field appearance="outline">
+            <mat-label>Oczekiwana emerytura (zł)</mat-label>
+            <input matInput type="number" formControlName="expectedPension" min="0">
+            <mat-hint>Opcjonalnie - jaka emerytura Cię interesuje</mat-hint>
+          </mat-form-field>
+        </div>
+
+        <!-- Checkbox chorobowe -->
+        <div class="checkbox-section">
+          <mat-checkbox formControlName="sickLeaveImpact">
+            Uwzględnij wpływ zwolnień chorobowych na emeryturę
+          </mat-checkbox>
+        </div>
+
+        <!-- Przyciski -->
+        <mat-card-actions align="end">
+          <button mat-button type="button" routerLink="/home">
+            <mat-icon>arrow_back</mat-icon>
+            Wróć
+          </button>
+          <button mat-raised-button 
+                  type="submit" 
+                  class="zus-primary-button"
+                  [disabled]="!simulationForm.valid || isCalculating">
+            <mat-icon>calculate</mat-icon>
+            {{ isCalculating ? 'Obliczam...' : 'Oblicz emeryturę' }}
+          </button>
+        </mat-card-actions>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Loading spinner -->
+  <div *ngIf="isCalculating" class="loading-overlay">
+    <app-loading-spinner message="Obliczam Twoją przyszłą emeryturę..."></app-loading-spinner>
+  </div>
+</div>
