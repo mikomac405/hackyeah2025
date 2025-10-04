@@ -1,0 +1,46 @@
+<div class="zus-container">
+  <div class="hero-section">
+    <h1>Symulator Emerytalny ZUS</h1>
+    <p class="hero-subtitle">Sprawdź swoją przyszłą emeryturę już dziś</p>
+  </div>
+
+  <div class="content-grid">
+    <mat-card class="zus-card expected-pension-card">
+      <mat-card-header>
+        <mat-card-title>Jaka emerytura Cię interesuje?</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p>Wprowadź oczekiwaną wysokość emerytury:</p>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Oczekiwana emerytura (zł)</mat-label>
+          <input matInput type="number" [(ngModel)]="expectedPension" min="0">
+          <mat-hint>Podaj kwotę netto</mat-hint>
+        </mat-form-field>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-raised-button class="zus-primary-button" (click)="startSimulation()">
+          <mat-icon>calculate</mat-icon>
+          Rozpocznij symulację
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <mat-card class="zus-card fact-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>lightbulb</mat-icon>
+          Czy wiesz, że...?
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="fact-text">{{ randomFact }}</p>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-button (click)="loadRandomFact()">
+          <mat-icon>refresh</mat-icon>
+          Inna ciekawostka
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+</div>

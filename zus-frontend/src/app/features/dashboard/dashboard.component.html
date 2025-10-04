@@ -1,0 +1,101 @@
+<div class="zus-container">
+  <div class="dashboard-header">
+    <h1>Dashboard zaawansowany</h1>
+    <p class="subtitle">Szczegółowa analiza i dodatkowe opcje</p>
+  </div>
+
+  <div class="dashboard-grid" *ngIf="!isLoading">
+    <!-- Dane historyczne -->
+    <mat-card class="zus-card historical-data">
+      <mat-card-header>
+        <mat-card-title>Dane historyczne</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="historicalData">
+          <h4>Średnie wynagrodzenia (ostatnie 5 lat)</h4>
+          <div class="data-list">
+            <div *ngFor="let salary of historicalData.averageSalaries; let i = index" class="data-item">
+              <span>{{ historicalData.years[i] }}:</span>
+              <span>{{ salary | currencyPln }}</span>
+            </div>
+          </div>
+
+          <h4>Stopy inflacji</h4>
+          <div class="data-list">
+            <div *ngFor="let rate of historicalData.inflationRates; let i = index" class="data-item">
+              <span>{{ historicalData.years[i] }}:</span>
+              <span>{{ rate | percentage:1 }}</span>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Statystyki regionalne -->
+    <mat-card class="zus-card regional-stats">
+      <mat-card-header>
+        <mat-card-title>Statystyki regionalne</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="regionalStats">
+          <div class="stat-item">
+            <span class="stat-label">Region:</span>
+            <span class="stat-value">{{ regionalStats.region }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Średnia emerytura:</span>
+            <span class="stat-value">{{ regionalStats.averagePension | currencyPln }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Liczba uczestników:</span>
+            <span class="stat-value">{{ regionalStats.participantsCount }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Mediana wieku:</span>
+            <span class="stat-value">{{ regionalStats.medianAge }} lat</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Grupy emerytalne -->
+    <mat-card class="zus-card pension-groups">
+      <mat-card-header>
+        <mat-card-title>Rozkład grup emerytalnych</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="groups-container">
+          <div *ngFor="let group of pensionGroups" 
+               class="group-item" 
+               [style.border-left-color]="group.color">
+            <h4>{{ group.name }}</h4>
+            <p class="group-amount">{{ group.averageAmount | currencyPln }}</p>
+            <p class="group-percentage">{{ group.percentage }}% emerytów</p>
+            <p class="group-description">{{ group.detailedInfo }}</p>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading">
+    <app-loading-spinner message="Ładowanie danych dashboard..."></app-loading-spinner>
+  </div>
+
+  <!-- Akcje -->
+  <div class="actions">
+    <button mat-button routerLink="/home">
+      <mat-icon>home</mat-icon>
+      Strona główna
+    </button>
+    <button mat-button routerLink="/simulation">
+      <mat-icon>calculate</mat-icon>
+      Nowa symulacja
+    </button>
+    <button mat-raised-button class="zus-accent-button" (click)="loadDashboardData()">
+      <mat-icon>refresh</mat-icon>
+      Odśwież dane
+    </button>
+  </div>
+</div>

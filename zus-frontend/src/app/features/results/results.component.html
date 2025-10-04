@@ -1,0 +1,117 @@
+<div class="zus-container" *ngIf="results">
+  <div class="results-header">
+    <h1>Twoja prognoza emerytury</h1>
+    <p class="subtitle">Oto Twoje przyszłe świadczenie emerytalne</p>
+  </div>
+
+  <div class="results-grid">
+    <!-- Główne wyniki -->
+    <mat-card class="zus-card main-results">
+      <mat-card-header>
+        <mat-card-title>Prognozowana emerytura</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="amount-display">
+          <div class="amount-item">
+            <span class="label">Kwota rzeczywista:</span>
+            <span class="amount primary">{{ results.realAmount | currencyPln }}</span>
+          </div>
+          <div class="amount-item">
+            <span class="label">Kwota urealniona (z inflacją):</span>
+            <span class="amount secondary">{{ results.inflationAdjustedAmount | currencyPln }}</span>
+          </div>
+        </div>
+        
+        <div class="metrics">
+          <div class="metric">
+            <span class="metric-label">Stopa zastąpienia:</span>
+            <span class="metric-value">{{ results.replacementRate }}%</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Porównanie do średniej:</span>
+            <span class="metric-value">{{ results.averagePensionComparison }}%</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Scenariusze opóźnienia -->
+    <mat-card class="zus-card scenarios">
+      <mat-card-header>
+        <mat-card-title>Scenariusze opóźnienia emerytury</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="scenario-item">
+          <span class="scenario-label">+1 rok pracy:</span>
+          <span class="scenario-amount">{{ results.delayedRetirementScenarios.oneYear.amount | currencyPln }}</span>
+          <span class="scenario-increase">(+{{ results.delayedRetirementScenarios.oneYear.increase | currencyPln }})</span>
+        </div>
+        <div class="scenario-item">
+          <span class="scenario-label">+2 lata pracy:</span>
+          <span class="scenario-amount">{{ results.delayedRetirementScenarios.twoYears.amount | currencyPln }}</span>
+          <span class="scenario-increase">(+{{ results.delayedRetirementScenarios.twoYears.increase | currencyPln }})</span>
+        </div>
+        <div class="scenario-item">
+          <span class="scenario-label">+5 lat pracy:</span>
+          <span class="scenario-amount">{{ results.delayedRetirementScenarios.fiveYears.amount | currencyPln }}</span>
+          <span class="scenario-increase">(+{{ results.delayedRetirementScenarios.fiveYears.increase | currencyPln }})</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Wpływ chorobowego -->
+    <mat-card class="zus-card sick-leave" *ngIf="results.sickLeaveImpact">
+      <mat-card-header>
+        <mat-card-title>Wpływ zwolnień chorobowych</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="sick-leave-comparison">
+          <div class="comparison-item">
+            <span class="label">Z uwzględnieniem chorobowego:</span>
+            <span class="amount">{{ results.sickLeaveImpact.withSickLeave | currencyPln }}</span>
+          </div>
+          <div class="comparison-item">
+            <span class="label">Bez zwolnień chorobowych:</span>
+            <span class="amount">{{ results.sickLeaveImpact.withoutSickLeave | currencyPln }}</span>
+          </div>
+          <div class="comparison-item difference">
+            <span class="label">Różnica:</span>
+            <span class="amount">{{ results.sickLeaveImpact.difference | currencyPln }} ({{ results.sickLeaveImpact.percentageImpact }}%)</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Akcje -->
+  <div class="actions">
+    <button mat-button (click)="newSimulation()">
+      <mat-icon>refresh</mat-icon>
+      Nowa symulacja
+    </button>
+    <button mat-raised-button class="zus-accent-button" (click)="generateReport()" [disabled]="isGeneratingReport">
+      <mat-icon>download</mat-icon>
+      {{ isGeneratingReport ? 'Generuję...' : 'Pobierz raport' }}
+    </button>
+    <button mat-button routerLink="/dashboard">
+      <mat-icon>dashboard</mat-icon>
+      Dashboard zaawansowany
+    </button>
+  </div>
+</div>
+
+<div class="zus-container" *ngIf="!results">
+  <mat-card class="zus-card">
+    <mat-card-content>
+      <div class="no-results">
+        <mat-icon>warning</mat-icon>
+        <h2>Brak danych do wyświetlenia</h2>
+        <p>Aby zobaczyć wyniki, musisz najpierw wykonać symulację.</p>
+        <button mat-raised-button class="zus-primary-button" routerLink="/simulation">
+          <mat-icon>calculate</mat-icon>
+          Wykonaj symulację
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>
