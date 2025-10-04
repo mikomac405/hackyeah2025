@@ -35,6 +35,7 @@ import { DashboardComponent } from './features/dashboard/dashboard.component';
 // Shared components
 import { LoadingSpinnerComponent } from './shared/components/loading-spinner/loading-spinner.component';
 import { ChartComponent } from './shared/components/chart/chart.component';
+import { BackendStatusComponent } from './shared/components/backend-status/backend-status.component';
 
 // Shared pipes
 import { CurrencyPlnPipe } from './shared/pipes/currency-pln.pipe';
@@ -50,7 +51,8 @@ import { PercentagePipe } from './shared/pipes/percentage.pipe';
     LoadingSpinnerComponent,
     ChartComponent,
     CurrencyPlnPipe,
-    PercentagePipe
+    PercentagePipe,
+    BackendStatusComponent
   ],
   imports: [
     BrowserModule,
@@ -78,7 +80,6 @@ import { PercentagePipe } from './shared/pipes/percentage.pipe';
     MatSnackBarModule,
     MatDialogModule,
     
-    // Routing
     AppRoutingModule
   ],
   providers: [],

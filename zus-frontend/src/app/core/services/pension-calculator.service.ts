@@ -1,240 +1,187 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, BehaviorSubject } from 'rxjs';
-import { delay, map } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
+import { Observable, BehaviorSubject } from 'rxjs';
+import { map, timeout, retry, catchError } from 'rxjs/operators';
 import { 
   PensionInputData, 
   PensionCalculationResult, 
   PensionGroup 
 } from '../models/pension-data.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PensionCalculatorService {
-  private readonly CURRENT_YEAR = 2025;
-  private readonly AVERAGE_PENSION = 2800;
-  private readonly MINIMUM_PENSION = 1588.44;
-  private readonly PENSION_CONTRIBUTION_RATE = 0.1952;
-  private readonly INFLATION_RATE = 0.025;
+  private apiUrl = environment.apiUrl;
   
-  // BehaviorSubject do przechowywania aktualnych obliczeń
   private currentCalculationSubject = new BehaviorSubject<PensionCalculationResult | null>(null);
   public currentCalculation$ = this.currentCalculationSubject.asObservable();
 
-  // BehaviorSubject do przechowywania danych wejściowych
   private currentInputDataSubject = new BehaviorSubject<PensionInputData | null>(null);
   public currentInputData$ = this.currentInputDataSubject.asObservable();
 
-  constructor() { }
+  private isLoadingSubject = new BehaviorSubject<boolean>(false);
+  public isLoading$ = this.isLoadingSubject.asObservable();
 
-  /**
-   * Główna metoda kalkulacji emerytury
-   */
+  constructor(private http: HttpClient) { }
+
+
   calculatePension(inputData: PensionInputData): Observable<PensionCalculationResult> {
-    // Zapisujemy dane wejściowe
-    this.currentInputDataSubject.next(inputData);
+    console.log(' Wysyłam dane do Python backend:', inputData);
     
-    return of(this.performCalculation(inputData)).pipe(
-      delay(1500), // Symulacja czasu obliczeń
-      map(result => {
-        this.currentCalculationSubject.next(result);
-        return result;
-      })
-    );
+    this.currentInputDataSubject.next(inputData);
+    this.isLoadingSubject.next(true);
+    
+    // Mapujemy dane na format oczekiwany przez backend
+    const backendPayload = this.mapToBackendFormat(inputData);
+    
+    console.log('🔍 DEBUG - Backend payload (co faktycznie wysyłamy):', backendPayload);
+    
+    return this.http.post<any>(`${this.apiUrl}/calculate-pension`, backendPayload)
+      .pipe(
+        timeout(environment.apiTimeout),
+        retry(2), 
+        map(response => {
+          console.log('🔍 DEBUG - Raw backend response:', response);
+          return this.mapFromBackendFormat(response);
+        }),
+        map(result => {
+          console.log('✅ Otrzymano wyniki z backend (po mapowaniu):', result);
+          this.currentCalculationSubject.next(result);
+          this.isLoadingSubject.next(false);
+          return result;
+        })
+      );
   }
 
-  /**
-   * Pobiera grupy emerytalne do wykresu  DO ZMIANY NA SERWIS API
-   */
+
   getPensionGroups(): Observable<PensionGroup[]> {
-    const groups: PensionGroup[] = [
-      {
-        name: 'Poniżej minimalnej',
-        description: 'Emerytury poniżej minimalnej kwoty',
-        averageAmount: 1200,
-        percentage: 15,
-        color: '#F05E5E',
-        detailedInfo: 'Głównie osoby z krótkimi okresami składkowymi lub niskimi zarobkami. ZUS dopłaca do minimalnej emerytury.'
-      },
-      {
-        name: 'Minimalna - 2000 zł',
-        description: 'Emerytury w przedziale minimalnym',
-        averageAmount: 1600,
-        percentage: 25,
-        color: '#FFB34F',
-        detailedInfo: 'Osoby pracujące za najniższą krajową lub z przerwami w karierze zawodowej.'
-      },
-      {
-        name: '2000 - 3500 zł',
-        description: 'Średnie emerytury pracowników',
-        averageAmount: 2750,
-        percentage: 35,
-        color: '#00993F',
-        detailedInfo: 'Największa grupa emerytów - osoby ze średnimi zarobkami i regularną aktywnością zawodową.'
-      },
-      {
-        name: '3500 - 5000 zł',
-        description: 'Emerytury wyższe',
-        averageAmount: 4250,
-        percentage: 20,
-        color: '#3F84D2',
-        detailedInfo: 'Osoby z długim stażem pracy i ponadprzeciętnymi zarobkami, specjaliści, kierownicy średniego szczebla.'
-      },
-      {
-        name: 'Powyżej 5000 zł',
-        description: 'Najwyższe emerytury',
-        averageAmount: 6500,
-        percentage: 5,
-        color: '#00416E',
-        detailedInfo: 'Kadra kierownicza, specjaliści z bardzo wysokimi zarobkami, osoby z maksymalnym okresem składkowym.'
-      }
-    ];
-
-    return of(groups).pipe(delay(300));
+    return this.http.get<any[]>(`${this.apiUrl}/pension-groups`)
+      .pipe(
+        timeout(5000),
+        map(response => this.mapPensionGroupsFromBackend(response))
+      );
   }
 
-  /**
-   * Pobiera losową ciekawostkę
-   */
+
   getRandomFact(): Observable<string> {
-    const facts = [
-      'Średnia emerytura w Polsce wynosi około 2,800 zł brutto.',
-      'Kobiety przechodzą na emeryturę w wieku 60 lat, mężczyźni w wieku 65 lat.',
-      'Składka emerytalna wynosi 19,52% wynagrodzenia brutto.',
-      'System emerytalny w Polsce działa w oparciu o zasadę zdefiniowanej składki.',
-      'Minimalna emerytura w 2025 roku wynosi 1,588.44 zł brutto.',
-      'Każdy dodatkowy rok pracy może zwiększyć emeryturę nawet o 8-10%.',
-      'W 2023 roku średni okres pobierania emerytury wynosił około 22 lata.',
-      'Kobiety otrzymują średnio o 25% niższe emerytury niż mężczyźni.',
-      'Prognoza demograficzna wskazuje na wzrost liczby emerytów do 2040 roku.',
-      'System emerytalny składa się z I filaru (ZUS) i opcjonalnego III filaru (PPK, IKE).',
-      'Średni wiek przejścia na emeryturę w Polsce to 61 lat.',
-      'Emerytura minimalna jest waloryzowana co roku wraz z inflacją.'
-    ];
-
-    const randomFact = facts[Math.floor(Math.random() * facts.length)];
-    return of(randomFact).pipe(delay(100));
+    return this.http.get<{fact: string}>(`${this.apiUrl}/random-fact`)
+      .pipe(
+        timeout(3000),
+        map(response => response.fact)
+      );
   }
 
+  getRegionalStats(postalCode?: string): Observable<any> {
+    const params = postalCode ? `?postal_code=${postalCode}` : '';
+    return this.http.get(`${this.apiUrl}/regional-stats${params}`)
+      .pipe(
+        timeout(5000)
+      );
+  }
+
+
   /**
-   * Czyści zapisane dane
+   * TEST METHOD - sprawdza czy backend w ogóle działa
    */
+  testCalculation(): Observable<any> {
+    console.log('🧪 Testing backend calculation...');
+    return this.http.post<any>(`${this.apiUrl}/test-calculation`, {test: true})
+      .pipe(
+        timeout(10000),
+        map(response => {
+          console.log('🧪 Test response:', response);
+          return response;
+        }),
+        catchError((error: any) => {
+          console.error('🧪 Test failed:', error);
+          throw error;
+        })
+      );
+  }
+
+  checkBackendHealth(): Observable<{status: string, version: string}> {
+    return this.http.get<{status: string, version: string}>(`${this.apiUrl}/health`)
+      .pipe(
+        timeout(3000)
+      );
+  }
+
+
+  private mapToBackendFormat(inputData: PensionInputData): any {
+    return {
+      age: inputData.age,
+      gender: inputData.gender,
+      grossSalary: inputData.grossSalary,  // Poprawiono: backend oczekuje camelCase
+      workStartYear: inputData.workStartYear,  // Poprawiono: backend oczekuje camelCase
+      workEndYear: inputData.workEndYear || null,  // Poprawiono: backend oczekuje camelCase
+      currentFunds: inputData.currentFunds || 0,  // Poprawiono: backend oczekuje camelCase
+      currentSubFunds: inputData.currentSubFunds || 0,  // Poprawiono: backend oczekuje camelCase
+      sickLeaveImpact: inputData.sickLeaveImpact || false,  // Poprawiono: backend oczekuje camelCase
+      expectedPension: inputData.expectedPension || null,  // Poprawiono: backend oczekuje camelCase
+      postalCode: inputData.postalCode || null  // Poprawiono: backend oczekuje camelCase
+    };
+  }
+
+
+  private mapFromBackendFormat(response: any): PensionCalculationResult {
+    return {
+      realAmount: Math.round(response.real_amount || 0),
+      inflationAdjustedAmount: Math.round(response.inflation_adjusted_amount || 0),
+      replacementRate: Math.round(response.replacement_rate || 0),
+      averagePensionComparison: Math.round(response.average_pension_comparison || 0),
+      sickLeaveImpact: response.sick_leave_impact ? {
+        withSickLeave: Math.round(response.sick_leave_impact.with_sick_leave),
+        withoutSickLeave: Math.round(response.sick_leave_impact.without_sick_leave),
+        difference: Math.round(response.sick_leave_impact.difference),
+        percentageImpact: Math.round(response.sick_leave_impact.percentage_impact)
+      } : undefined,
+      delayedRetirementScenarios: {
+        oneYear: {
+          amount: Math.round(response.delayed_retirement_scenarios?.one_year?.amount || 0),
+          increase: Math.round(response.delayed_retirement_scenarios?.one_year?.increase || 0)
+        },
+        twoYears: {
+          amount: Math.round(response.delayed_retirement_scenarios?.two_years?.amount || 0),
+          increase: Math.round(response.delayed_retirement_scenarios?.two_years?.increase || 0)
+        },
+        fiveYears: {
+          amount: Math.round(response.delayed_retirement_scenarios?.five_years?.amount || 0),
+          increase: Math.round(response.delayed_retirement_scenarios?.five_years?.increase || 0)
+        }
+      },
+      requiredWorkExtension: response.required_work_extension || undefined,
+      fundsGrowthTimeline: (response.funds_growth_timeline || []).map((item: any) => ({
+        year: item.year,
+        age: item.age,
+        totalFunds: Math.round(item.total_funds),
+        annualContribution: Math.round(item.annual_contribution)
+      }))
+    };
+  }
+
+  private mapPensionGroupsFromBackend(response: any[]): PensionGroup[] {
+    return response.map(group => ({
+      name: group.name,
+      description: group.description,
+      averageAmount: group.average_amount,
+      percentage: group.percentage,
+      color: group.color,
+      detailedInfo: group.detailed_info
+    }));
+  }
+
   clearCalculations(): void {
     this.currentCalculationSubject.next(null);
     this.currentInputDataSubject.next(null);
   }
 
-  /**
-   * Pobiera aktualne dane wejściowe (synchronicznie)
-   */
   getCurrentInputData(): PensionInputData | null {
     return this.currentInputDataSubject.value;
   }
 
-  /**
-   * Pobiera aktualne wyniki (synchronicznie)
-   */
   getCurrentCalculation(): PensionCalculationResult | null {
     return this.currentCalculationSubject.value;
-  }
-
-  /**
-   * Prywatna metoda wykonująca obliczenia
-   */
-  private performCalculation(inputData: PensionInputData): PensionCalculationResult {
-    const retirementAge = this.getRetirementAge(inputData.gender);
-    const effectiveWorkEndYear = inputData.workEndYear || 
-      (this.CURRENT_YEAR + Math.max(0, retirementAge - inputData.age));
-    
-    const workYears = Math.max(0, effectiveWorkEndYear - inputData.workStartYear);
-    const annualContribution = inputData.grossSalary * this.PENSION_CONTRIBUTION_RATE * 12;
-    const totalContributions = (annualContribution * workYears) + (inputData.currentFunds || 0);
-    
-    // Średnia długość życia po przejściu na emeryturę (w miesiącach)
-    const averageLifeExpectancy = inputData.gender === 'female' ? 25 * 12 : 20 * 12;
-    const basicPension = totalContributions / averageLifeExpectancy;
-    
-    // Symulacja inflacji
-    const yearsToRetirement = Math.max(0, retirementAge - inputData.age);
-    const inflationAdjusted = basicPension / Math.pow(1 + this.INFLATION_RATE, yearsToRetirement);
-    
-    // Wpływ chorobowego (statystycznie kobiety więcej dni chorobowego)
-    const sickLeaveImpact = inputData.sickLeaveImpact ? {
-      withSickLeave: basicPension,
-      withoutSickLeave: basicPension * (inputData.gender === 'female' ? 1.07 : 1.05),
-      difference: basicPension * (inputData.gender === 'female' ? 0.07 : 0.05),
-      percentageImpact: inputData.gender === 'female' ? 7 : 5
-    } : undefined;
-
-    // Scenariusze opóźnienia emerytury
-    const delayedRetirementScenarios = {
-      oneYear: {
-        amount: Math.round(basicPension * 1.08),
-        increase: Math.round(basicPension * 0.08)
-      },
-      twoYears: {
-        amount: Math.round(basicPension * 1.16),
-        increase: Math.round(basicPension * 0.16)
-      },
-      fiveYears: {
-        amount: Math.round(basicPension * 1.4),
-        increase: Math.round(basicPension * 0.4)
-      }
-    };
-
-    // Timeline wzrostu środków
-    const fundsGrowthTimeline = this.calculateFundsGrowthTimeline(
-      inputData, workYears, annualContribution
-    );
-
-    // Wymagane przedłużenie pracy jeśli emerytura nie spełnia oczekiwań
-    let requiredWorkExtension: number | undefined;
-    if (inputData.expectedPension && basicPension < inputData.expectedPension) {
-      const shortfall = inputData.expectedPension - basicPension;
-      requiredWorkExtension = Math.ceil(shortfall / (annualContribution / averageLifeExpectancy));
-    }
-
-    return {
-      realAmount: Math.round(basicPension),
-      inflationAdjustedAmount: Math.round(inflationAdjusted),
-      replacementRate: Math.round((basicPension / inputData.grossSalary) * 100),
-      averagePensionComparison: Math.round((basicPension / this.AVERAGE_PENSION) * 100),
-      sickLeaveImpact,
-      delayedRetirementScenarios,
-      requiredWorkExtension,
-      fundsGrowthTimeline
-    };
-  }
-
-  private calculateFundsGrowthTimeline(
-    inputData: PensionInputData, 
-    workYears: number, 
-    annualContribution: number
-  ): Array<{year: number; age: number; totalFunds: number; annualContribution: number}> {
-    const timeline = [];
-    const startingFunds = inputData.currentFunds || 0;
-    let cumulativeFunds = startingFunds;
-    
-    for (let i = 0; i <= workYears; i++) {
-      const year = inputData.workStartYear + i;
-      const age = inputData.age + (year - this.CURRENT_YEAR);
-      
-      if (i > 0) {
-        cumulativeFunds += annualContribution;
-      }
-      
-      timeline.push({
-        year,
-        age,
-        totalFunds: Math.round(cumulativeFunds),
-        annualContribution: Math.round(annualContribution)
-      });
-    }
-    
-    return timeline;
-  }
-
-  private getRetirementAge(gender: string): number {
-    return gender === 'female' ? 60 : 65;
   }
 }

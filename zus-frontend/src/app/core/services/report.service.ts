@@ -2,9 +2,8 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import { PensionCalculationResult, PensionInputData } from '../models/pension-data.model';
-
-declare var jsPDF: any;
-declare var html2canvas: any;
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 @Injectable({
   providedIn: 'root'
