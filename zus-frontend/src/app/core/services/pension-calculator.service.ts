@@ -44,7 +44,7 @@ export class PensionCalculatorService {
   }
 
   /**
-   * Pobiera grupy emerytalne do wykresu
+   * Pobiera grupy emerytalne do wykresu  DO ZMIANY NA SERWIS API
    */
   getPensionGroups(): Observable<PensionGroup[]> {
     const groups: PensionGroup[] = [
