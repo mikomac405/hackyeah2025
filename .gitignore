@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Virtual environments
+myenv/
+venv/
+env/
+.venv/
+
+# Environment files
+.env
+.env.local
+
+# Reports and temporary files
+/tmp/
+*.xlsx
+*.pdf
