@@ -10,6 +10,8 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime
 from routes.api import api_bp
+from routes.admin import admin_bp
+from database.factory import get_db
 
 def create_app():
     """Application factory pattern"""
@@ -19,9 +21,16 @@ def create_app():
     # Configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+    app.config['DATABASE_PATH'] = os.environ.get('DATABASE_PATH') or 'pension_simulator.db'
+
+    # Initialize database
+    with app.app_context():
+        db = get_db()
+        # Database is initialized automatically in the repository constructor
 
     # Register blueprints
     app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
     @app.route('/health', methods=['GET'])
     def health_check():

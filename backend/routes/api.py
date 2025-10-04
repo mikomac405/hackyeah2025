@@ -6,12 +6,9 @@ import os
 import json
 from models.pension_calculator import PensionCalculator
 from utils.report_generator import generate_report
+from database.factory import get_db
 
 api_bp = Blueprint('api', __name__)
-
-# In-memory storage (replace with database in production)
-simulations_db = []
-admin_reports_db = []
 
 @api_bp.route('/dashboard', methods=['GET'])
 def get_dashboard_data():
@@ -45,6 +42,7 @@ def simulate_pension():
     """Calculate pension based on provided parameters"""
     try:
         data = request.get_json()
+        db = get_db()
 
         # Validate required fields
         required_fields = ['age', 'sex', 'gross_salary', 'work_start_year']
@@ -52,26 +50,15 @@ def simulate_pension():
             if field not in data:
                 return jsonify({'error': f'Missing required field: {field}'}), 400
 
-        # Create simulation record
-        simulation_id = len(simulations_db) + 1
-        simulation_data = {
-            'id': simulation_id,
-            'timestamp': datetime.utcnow().isoformat(),
-            'input_data': data,
-            'status': 'processing'
-        }
-
-        simulations_db.append(simulation_data)
+        # Create simulation record in database
+        simulation_id = db.create_simulation(data)
 
         # Use pension calculator
         calculator = PensionCalculator()
         result = calculator.calculate_pension(data)
 
         # Update simulation with results
-        simulation_data.update({
-            'status': 'completed',
-            'results': result
-        })
+        db.update_simulation(simulation_id, result, 'completed')
 
         return jsonify({
             'simulation_id': simulation_id,
@@ -85,7 +72,8 @@ def simulate_pension():
 def get_simulation(simulation_id):
     """Get simulation results by ID"""
     try:
-        simulation = next((s for s in simulations_db if s['id'] == simulation_id), None)
+        db = get_db()
+        simulation = db.get_simulation(simulation_id)
         if not simulation:
             return jsonify({'error': 'Simulation not found'}), 404
 
@@ -98,13 +86,14 @@ def advanced_dashboard():
     """Advanced dashboard for detailed analysis"""
     try:
         data = request.get_json()
+        db = get_db()
 
         # Validate simulation_id
         if 'simulation_id' not in data:
             return jsonify({'error': 'simulation_id is required'}), 400
 
         simulation_id = data['simulation_id']
-        simulation = next((s for s in simulations_db if s['id'] == simulation_id), None)
+        simulation = db.get_simulation(simulation_id)
         if not simulation:
             return jsonify({'error': 'Simulation not found'}), 404
 
@@ -120,7 +109,8 @@ def advanced_dashboard():
 def download_report(simulation_id):
     """Generate and download pension report"""
     try:
-        simulation = next((s for s in simulations_db if s['id'] == simulation_id), None)
+        db = get_db()
+        simulation = db.get_simulation(simulation_id)
         if not simulation:
             return jsonify({'error': 'Simulation not found'}), 404
 
@@ -140,9 +130,11 @@ def get_admin_reports():
     """Get all simulation reports for admin (requires authentication in production)"""
     try:
         # In production, add authentication check here
+        db = get_db()
+        simulations = db.get_all_simulations()
         reports = []
 
-        for sim in simulations_db:
+        for sim in simulations:
             report_data = {
                 'date_of_use': sim['timestamp'].split('T')[0],
                 'time_of_use': sim['timestamp'].split('T')[1].split('.')[0],
@@ -152,8 +144,8 @@ def get_admin_reports():
                 'salary_amount': sim['input_data'].get('gross_salary', ''),
                 'include_sick_leave': sim['input_data'].get('include_sick_leave', False),
                 'zus_funds': sim['input_data'].get('zus_funds', ''),
-                'actual_pension': sim['results'].get('actual_amount', '') if 'results' in sim else '',
-                'real_pension': sim['results'].get('real_amount', '') if 'results' in sim else '',
+                'actual_pension': sim['results'].get('actual_amount', '') if sim['results'] else '',
+                'real_pension': sim['results'].get('real_amount', '') if sim['results'] else '',
                 'postal_code': sim['input_data'].get('postal_code', '')
             }
             reports.append(report_data)
